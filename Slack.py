@@ -21,11 +21,19 @@ def send():
 		text    = "Du mouvement..."
 		)
 
+mouv = 0
+
 while True:
     try:
         if grovepi.digitalRead(pir_sensor):
-            send()
-        time.sleep(.2)
+            mouv++
+		else:
+			mouv--
+		if mouv == 10:
+			send()
+			mouv=0
+			time.sleep(30)
+        time.sleep(1)
 
     except IOError:
         print "Error"
