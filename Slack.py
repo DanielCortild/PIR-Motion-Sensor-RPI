@@ -30,10 +30,10 @@ while True:
         elif mouv > 0:
 			mouv = mouv-1
 
-        if mouv == 10:
-			send("Mouvement on " + time.strftime("%Y-%m-%d %(H+2):%M:%S", time.gmtime()))
+        if mouv == 5:
+			send("Mouvement on " + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
 			mouv=0
-			time.sleep(30)
+			time.sleep(5)
 
         time.sleep(.2)
 
