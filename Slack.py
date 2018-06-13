@@ -27,12 +27,11 @@ while True:
     try:
         if grovepi.digitalRead(pir_sensor):
             mouv = mouv+1
-        else:
-            if mouv > 0:
-				mouv = mouv-1
+        elif mouv > 0:
+			mouv = mouv-1
 
         if mouv == 10:
-			send("Mouvement on " + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
+			send("Mouvement on " + time.strftime("%Y-%m-%d %(H+2):%M:%S", time.gmtime()))
 			mouv=0
 			time.sleep(30)
 
