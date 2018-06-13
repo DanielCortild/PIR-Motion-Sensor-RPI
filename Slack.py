@@ -26,9 +26,10 @@ mouv = 0
 while True:
     try:
         if grovepi.digitalRead(pir_sensor):
-            mouv++
+            mouv+=1
 		else:
-			mouv--
+			mouv-=1
+			if mouv<0: mouv=0
 		if mouv == 10:
 			send()
 			mouv=0
