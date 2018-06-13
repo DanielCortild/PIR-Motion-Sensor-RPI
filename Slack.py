@@ -12,13 +12,13 @@ pir_sensor = 8
 
 grovepi.pinMode(pir_sensor,"INPUT")
 
-def send():
+def send(message):
 	if sc.rtm_connect(with_team_state=False):
-		print "starting...."
+		print message
 		sc.api_call(
 		"chat.postMessage",
 		channel = CHANNEL_NAME,
-		text    = "Du mouvement..."
+		text = message
 		)
 
 mouv = 0
@@ -32,8 +32,7 @@ while True:
 				mouv = mouv-1
 
         if mouv == 10:
-			print("Mouvmement")
-			send()
+			send("Mouvement")
 			mouv=0
 			time.sleep(30)
 
