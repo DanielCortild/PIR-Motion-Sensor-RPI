@@ -32,7 +32,7 @@ while True:
 				mouv = mouv-1
 
         if mouv == 10:
-			send("Mouvement" + time.strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+			send("Mouvement on " + time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()))
 			mouv=0
 			time.sleep(30)
 
