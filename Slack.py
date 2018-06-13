@@ -3,7 +3,6 @@ import time
 import os
 import psutil
 import grovepi
-import datetime
 
 slack_token = os.environ.get('SLACK_BOT_TOKEN')
 BOT_TOKEN = slack_token
@@ -33,7 +32,7 @@ while True:
 				mouv = mouv-1
 
         if mouv == 10:
-			send("Mouvement" + strftime("%Y-%m-%d %H:%M:%S", gmtime()))
+			send("Mouvement" + time.strftime("%Y-%m-%d %H:%M:%S", gmtime()))
 			mouv=0
 			time.sleep(30)
 
