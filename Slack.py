@@ -1,70 +1,117 @@
-import os
-import time
-import re
+#!/usr/bin/env python
+#-*- coding: utf-8 -*-
 from slackclient import SlackClient
+import time
+import os
+import psutil
 
+slack_token = os.environ.get('SLACK_BOT_TOKEN')
+BOT_TOKEN = slack_token
+sc = SlackClient(slack_token)
+CHANNEL_NAME = "piBot"
 
-# instantiate Slack client
-slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
-# starterbot's user ID in Slack: value is assigned after the bot starts up
-starterbot_id = None
+def getStatus():
+	# e = os.popen('top -n 1').readline()
+	cpu= []
+	for i in range(3):
+		cpu.append(str(psutil.cpu_percent(interval =1)))
+	memory_total = psutil.virtual_memory().total
+	memory_avaible = psutil.virtual_memory().available
+	memory_percent = psutil.virtual_memory().percent
+	disk = psutil.disk_usage('/')
+	disk_free = disk.free / 2**20
+	free_disk_space =  str(round(disk_free/float(1000),2))+' GB'
+	users_shell = os.popen("who").read().strip()
+	attachment =  [
+		{
+			"title": "Status",
+			"color": "#3AA3E3",
+			"attachment_type": "default",
+			"fields": [
+				{
+					"title": "RAM",
+					"value": str(memory_percent) +"%",
+					"short": True
+				},
+				{
+					"title": "Espace",
+					"value": str(free_disk_space),
+					"short": True
+				},
+				{
+					"title": "cpu (3) ",
+					"value": str("\n".join(cpu)),
+					"short": True
+				},
+				{
+					"title": "connectes",
+					"value": users_shell,
+					"short": True
+				}
+		]
+		}
+		]
+	return attachment
+def reboot():
+	sc.api_call(
+	"chat.postMessage",
+	channel =response["channel"],
+	text    ="Je me reboot ! ",
+	)
+	time.sleep(1)
+	os.popen("sudo reboot")
+def parseSlack(txt):
+	txt = str(txt)
+	txt = txt.replace("'",'')
+	return txt
 
-# constants
-RTM_READ_DELAY = 1 # 1 second delay between reading from RTM
-EXAMPLE_COMMAND = "do"
-MENTION_REGEX = "^<@(|[WU].+?)>(.*)"
+def sendStatus(response):
+	sc.api_call(
+	"chat.postMessage",
+	channel =response["channel"],
+	text    ="Voici les status actuel :tada:",
+	attachments= getStatus()
+	)
+def listusb(response):
+	usb = os.popen("ls -l /dev | grep -i usb").read().strip()
+	sc.api_call(
+	"chat.postMessage",
+	channel =response["channel"],
+	text    ="Voici les usbs connectes : \n"+usb,
+	)
+def dispatch(response):
+	#print "dispatch"
+	if "atu" in response["message"]:
+		sendStatus(response)
+	elif "reboot" in response["message"]:
+		reboot()
+	elif "usb" in response["message"]:
+		listusb(response)
+	else:
+		sc.api_call(
+		"chat.postMessage",
+		channel =response["channel"],
+		text    ="Je ne comprends pas ce que tu as demandé :-(",
+		)
 
-def parse_bot_commands(slack_events):
-    """
-        Parses a list of events coming from the Slack RTM API to find bot commands.
-        If a bot command is found, this function returns a tuple of command and channel.
-        If its not found, then this function returns None, None.
-    """
-    for event in slack_events:
-        if event["type"] == "message" and not "subtype" in event:
-            user_id, message = parse_direct_mention(event["text"])
-            if user_id == starterbot_id:
-                return message, event["channel"]
-    return None, None
+def parseMessage(slack_message):
+	response = {}
+	try:
+		response['user'] = parseSlack(slack_message["subtitle"])
+		response["message"] = parseSlack(slack_message["content"])
+		response["channel"] = parseSlack(slack_message["channel"])
+	except Exception as e:
+		response = None
+	return response
+if sc.rtm_connect(with_team_state=False):
+	print "starting...."
+	while True:
+		for slack_message in sc.rtm_read():
+			response = parseMessage(slack_message)
+			# print response
+			if response != None and "pythonBOT (bot)" not in response["user"]:
+				# sc.rtm_send_message(response["channel"], "wrote something...")
+				dispatch(response)
 
-def parse_direct_mention(message_text):
-    """
-        Finds a direct mention (a mention that is at the beginning) in message text
-        and returns the user ID which was mentioned. If there is no direct mention, returns None
-    """
-    matches = re.search(MENTION_REGEX, message_text)
-    # the first group contains the username, the second group contains the remaining message
-    return (matches.group(1), matches.group(2).strip()) if matches else (None, None)
-
-def handle_command(command, channel):
-    """
-        Executes bot command if the command is known
-    """
-    # Default response is help text for the user
-    default_response = "Not sure what you mean. Try *{}*.".format(EXAMPLE_COMMAND)
-
-    # Finds and executes the given command, filling in response
-    response = None
-    # This is where you start to implement more commands!
-    if command.startswith(EXAMPLE_COMMAND):
-        response = "Sure...write some more code then I can do that!"
-
-    # Sends the response back to the channel
-    slack_client.api_call(
-        "chat.postMessage",
-        channel=channel,
-        text=response or default_response
-    )
-
-if __name__ == "__main__":
-    if slack_client.rtm_connect(with_team_state=False):
-        print("Starter Bot connected and running!")
-        # Read bot's user ID by calling Web API method `auth.test`
-        starterbot_id = slack_client.api_call("auth.test")["user_id"]
-        while True:
-            command, channel = parse_bot_commands(slack_client.rtm_read())
-            if command:
-                handle_command(command, channel)
-            time.sleep(RTM_READ_DELAY)
-    else:
-        print("Connection failed. Exception traceback printed above.")
+		# Sleep for half a second
+		time.sleep(0.5)
